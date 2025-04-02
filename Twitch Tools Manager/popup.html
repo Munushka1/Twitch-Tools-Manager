@@ -7,7 +7,17 @@
     <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-    <h1>Twitch Tools Manager</h1>
+    <div class="header-container">
+        <h1>Twitch Tools Manager</h1>
+        <div class="theme-toggle">
+            <span class="theme-icon light-icon">☀️</span>
+            <label class="toggle-switch theme-switch">
+                <input type="checkbox" id="themeToggle">
+                <span class="slider"></span>
+            </label>
+            <span class="theme-icon dark-icon">🌙</span>
+        </div>
+    </div>
 
     <div class="search-container">
         <input type="text" class="search-input" id="searchPlugins" placeholder="Search plugins...">
