@@ -4,6 +4,7 @@ body {
   padding: 16px;
   background-color: #f9f9f9;
   margin: 0;
+  transition: background-color 0.3s, color 0.3s;
 }
 h1 {
   font-size: 18px;
@@ -101,6 +102,9 @@ input:checked + .slider:before {
   border: 1px solid #ddd;
   box-sizing: border-box;
   font-size: 14px;
+  background-color: #fff;
+  color: #333;
+  transition: background-color 0.3s, color 0.3s, border-color 0.3s;
 }
 .search-icon {
   position: absolute;
@@ -116,4 +120,80 @@ input:checked + .slider:before {
   font-size: 13px;
   color: #2e7d32;
   display: none;
+}
+
+/* Header layout with theme toggle */
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.header-container h1 {
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+/* Theme toggle specific styles */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.theme-icon {
+  font-size: 14px;
+  user-select: none;
+}
+
+.theme-switch {
+  margin: 0 4px;
+}
+
+/* Dark theme styles */
+body.dark-theme {
+  background-color: #1f1f1f;
+  color: #e0e0e0;
+}
+
+body.dark-theme h1 {
+  color: #f0f0f0;
+  border-bottom-color: #444;
+}
+
+body.dark-theme .plugin-item {
+  border-bottom-color: #333;
+}
+
+body.dark-theme .plugin-item:hover {
+  background-color: #2a2a2a;
+}
+
+body.dark-theme .plugin-name {
+  color: #e0e0e0;
+}
+
+body.dark-theme .plugin-description {
+  color: #aaa;
+}
+
+body.dark-theme .search-input {
+  background-color: #333;
+  color: #e0e0e0;
+  border-color: #555;
+}
+
+body.dark-theme .search-icon {
+  color: #bbb;
+}
+
+body.dark-theme .status-message {
+  background-color: #1b3a24;
+  color: #7cc98a;
+}
+
+body.dark-theme .plugin-icon {
+  background-color: #444;
 }
