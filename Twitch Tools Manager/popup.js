@@ -12,7 +12,7 @@ const plugins = [
         description: 'Refreshes a stream when network error #2000 occurs',
         icon: 'icons/twitchpipss48x48.png',
         enabled: true
-    }
+    },
 ];
 
 // DOM ready
@@ -20,9 +20,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const pluginsList = document.getElementById('pluginsList');
     const searchInput = document.getElementById('searchPlugins');
     const statusMessage = document.getElementById('statusMessage');
+    const themeToggle = document.getElementById('themeToggle');
 
-    // Load saved plugin states
-    loadPluginStates().then(() => {
+    // Load saved plugin states and theme preference
+    Promise.all([
+        loadPluginStates(),
+        loadThemePreference()
+    ]).then(() => {
         // Initialize the plugin list
         renderPlugins(plugins);
     });
@@ -36,6 +40,44 @@ document.addEventListener('DOMContentLoaded', function() {
         );
         renderPlugins(filteredPlugins);
     });
+
+    // Theme togglee functionality
+    themeToggle.addEventListener('change', function(e) {
+        const isDarkMode = e.target.checked;
+        setTheme(isDarkMode);
+        saveThemePreference(isDarkMode);
+        showStatusMessage(`Theme switched to ${isDarkMode ? 'dark' : 'light'} mode`);
+    });
+
+    // Function to set theme
+    function setTheme(isDarkMode) {
+        if (isDarkMode) {
+            document.body.classList.add('dark-theme');
+        } else {
+            document.body.classList.remove('dark-theme');
+        }
+        themeToggle.checked = isDarkMode;
+    }
+
+    // Function to save theme preference
+    function saveThemePreference(isDarkMode) {
+        chrome.storage.sync.set({
+            'darkThemeEnabled': isDarkMode
+        }, function() {
+            console.log(`Theme preference saved: ${isDarkMode ? 'dark' : 'light'} mode`);
+        });
+    }
+
+    // Function to load theme preference
+    function loadThemePreference() {
+        return new Promise((resolve) => {
+            chrome.storage.sync.get('darkThemeEnabled', function(result) {
+                const isDarkMode = result.darkThemeEnabled === true;
+                setTheme(isDarkMode);
+                resolve();
+            });
+        });
+    }
 
     // Function to render the plugin List
     function renderPlugins(pluginsToRender) {
