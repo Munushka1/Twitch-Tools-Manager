@@ -1,0 +1,43 @@
+{
+    "manifest_version": 3,
+    "name": "Twitch Tools Manager",
+    "version": "1.0",
+    "description": "Twitch Plugin Manager to manage which plugins are enabled/disabled.",
+    "permissions": ["storage", "scripting", "tabs", "webNavigation"],
+    "host_permissions": ["*://*.twitch.tv/*"],
+    "action": {
+        "default_popup": "popup.html",
+        "default_icon": {
+            "16": "icons/twitchpipss16x16.png",
+            "48": "icons/twitchpipss48x48.png",
+            "128": "icons/twitchpipss128x128.png"
+        }
+    },
+    "icons": {
+        "16": "icons/twitchpipss16x16.png",
+        "48": "icons/twitchpipss48x48.png",
+        "128": "icons/twitchpipss128x128.png"
+    },
+    "background": {
+        "service_worker": "background.js"
+    },
+    "content_scripts": [
+        {
+            "matches": ["*://*.twitch.tv/*"],
+            "css": ["plugins/BTTVPiPRemover/styles.css"],
+            "js": ["plugins/BTTVPiPRemover/content.js"],
+            "run_at": "document_idle"
+        },
+        {
+            "matches": ["*://*.twitch.tv/*"],
+            "js": ["plugins/TwitchAutoRefresh/content.js"],
+            "run_at": "document_idle"
+        }
+    ],
+    "web_accessible_resources": [
+        {
+            "resources": ["plugins/*"],
+            "matches": ["<all_urls>"]
+        }
+    ]
+}

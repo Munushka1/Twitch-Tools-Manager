@@ -1,0 +1,15 @@
+button[data-a-target="player-pip-button"],
+div[data-test-selector="picture-by-picture-button"],
+div[data-a-target="player-theatre-mode-button"] + button,
+.player-controls_right-control-group button:nth-last-child(3),
+.pip-button,
+.picture-in-picture-button,
+button[aria-label*="Picture-in-Picture"],
+button[aria-label*="picture-in-picture"],
+button[data-a-target*="pip"],
+[data-a-target*="pip-button"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
