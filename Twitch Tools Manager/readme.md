@@ -1,5 +1,7 @@
 Installation Instructions
 
+- Download the Twitch Tools Extension Folder
+
 - Go to Manage Extensions
 
 - Enable Developer Mode
