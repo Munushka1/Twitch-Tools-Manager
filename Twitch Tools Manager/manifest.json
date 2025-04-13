@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Twitch Tools Manager",
-    "version": "1.1",
+    "version": "1.2",
     "description": "Twitch Plugin Manager to manage which plugins are enabled/disabled.",
     "permissions": ["storage", "scripting", "tabs", "webNavigation"],
     "host_permissions": ["*://*.twitch.tv/*"],
@@ -31,6 +31,11 @@
         {
             "matches": ["*://*.twitch.tv/*"],
             "js": ["plugins/TwitchAutoRefresh/content.js"],
+            "run_at": "document_idle"
+        },
+        {
+            "matches": ["*://*.twitch.tv/*"],
+            "js": ["plugins/BackgroundPlayer/content.js"],
             "run_at": "document_idle"
         }
     ],
