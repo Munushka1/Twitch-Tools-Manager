@@ -5,7 +5,8 @@ chrome.runtime.onInstalled.addListener(function() {
     // Set default plugin states
     const defaultPlugins = {
         'BTTVPiPRemover': true,
-        'TwitchAutoRefresh': true
+        'TwitchAutoRefresh': true,
+        'BackgroundPlayer': true
     };
 
     // Save default settings to chrome.storage.sync
@@ -42,6 +43,10 @@ function handlePluginStateChange(pluginId, enabled) {
         case 'TwitchAutoRefresh':
             updateTwitchAutoRefresh(enabled);
             break;
+
+        case 'BackgroundPlayer':
+            updateBackgroundPlayer(enabled);
+            break;
     }
 }
 
@@ -52,6 +57,9 @@ function updateContentScripts() {
 
         const TwitchAutoRefreshEnabled = result.TwitchAutoRefresh !== undefined ? result.TwitchAutoRefresh : true;
         updateTwitchAutoRefresh(TwitchAutoRefreshEnabled);
+
+        const BackgroundPlayerEnabled = result.BackgroundPlayer !== undefined ? result.BackgroundPlayer : true;
+        updateBackgroundPlayer(BackgroundPlayerEnabled);
     });
 }
 
@@ -116,6 +124,33 @@ function updateTwitchAutoRefresh(enabled) {
                         window.TwitchAutoRefreshDisabled = true;
                     }
                 }).catch(error => console.error("Error disabling Twitch Auto Refresher:", error));
+            }
+        });
+    }
+}
+
+function updateBackgroundPlayer(enabled) {
+    if (enabled) {
+        chrome.tabs.query({url: "*://*.twitch.tv/*"}, function(tabs) {
+            for (let tab of tabs) {
+                chrome.scripting.executeScript({
+                    target: {tabId: tab.id},
+                    files: ["plugins/BackgroundPlayer/content.js"]
+                }).catch(error => console.error("Error injecting Background Player script:", error));
+            }
+        });
+    } else {
+        chrome.tabs.query({url: "*://*.twitch.tv/*"}, function(tabs) {
+            for (let tab of tabs) {
+                chrome.scripting.executeScript({
+                    target: {tabId: tab.id},
+                    function: function() {
+                        for (let i = 1; i < 9999; i++) {
+                            window.clearInterval(i);
+                        }
+                        window.BackgroundPlayerDisabled = true;
+                    }
+                }).catch(error => console.error("Error disabling Background Player:", error));
             }
         });
     }
