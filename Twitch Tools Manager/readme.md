@@ -1,4 +1,4 @@
-Installation Instructions
+Installation Instructions:
 
 - Download the Twitch Tools Extension Folder
 
