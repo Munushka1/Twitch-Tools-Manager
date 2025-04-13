@@ -13,6 +13,13 @@ const plugins = [
         icon: 'icons/twitchpipss48x48.png',
         enabled: true
     },
+    {
+        id: "BackgroundPlayer",
+        name: "Stop Streams from Pausing",
+        description: 'Stops Twitch streams from pausing when you switch tabs',
+        icon: 'icons/twitchpipss48x48.png',
+        enabled: true
+    }
 ];
 
 // DOM ready
