@@ -81,11 +81,14 @@ h1 {
   transition: 0.4s;
   border-radius: 50%;
 }
+.slider:hover {
+  opacity: 88%;
+}
 input:checked + .slider {
-  background-color: #4caf50;
+  background-color: #9147ff;
 }
 input:focus + .slider {
-  box-shadow: 0 0 1px #4caf50;
+  box-shadow: 0 0 1px #9147ff;
 }
 input:checked + .slider:before {
   left: calc(100% - 18px);
