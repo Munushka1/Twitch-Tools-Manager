@@ -13,6 +13,13 @@ h1 {
   border-bottom: 1px solid #ddd;
   padding-bottom: 8px;
 }
+.plugin-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 2px;
+}
 .plugin-list {
   max-height: 300px;
   overflow-y: auto;
@@ -41,7 +48,13 @@ h1 {
 }
 .plugin-name {
   font-weight: 500;
-  margin-bottom: 2px;
+}
+.plugin-version {
+  font-size: 13px;
+  color: #777;
+  font-weight: normal;
+  margin-left: auto;
+  margin-right: 10px;
 }
 .plugin-description {
   font-size: 12px;
@@ -164,6 +177,10 @@ body.dark-theme {
 body.dark-theme h1 {
   color: #f0f0f0;
   border-bottom-color: #444;
+}
+
+body.dark-theme .plugin-version {
+  color: #999;
 }
 
 body.dark-theme .plugin-item {
