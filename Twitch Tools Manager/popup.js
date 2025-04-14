@@ -4,21 +4,24 @@ const plugins = [
         name: 'BTTV PiP Button Remover',
         description: 'Removes the Picture-in-Picture button from Twitch Streams',
         icon: 'icons/twitchpipss48x48.png',
-        enabled: true
+        enabled: true,
+        version: "1.0.0"
     },
     {
         id: "TwitchAutoRefresh",
         name: "Twitch Auto Refresh",
         description: 'Refreshes a stream when network error #2000 occurs',
         icon: 'icons/twitchpipss48x48.png',
-        enabled: true
+        enabled: true,
+        version: "1.0.0"
     },
     {
         id: "BackgroundPlayer",
         name: "Stop Streams from Pausing",
         description: 'Stops Twitch streams from pausing when you switch tabs',
         icon: 'icons/twitchpipss48x48.png',
-        enabled: true
+        enabled: true,
+        version: "1.0.2"
     }
 ];
 
@@ -104,12 +107,15 @@ document.addEventListener('DOMContentLoaded', function() {
             pluginItem.innerHTML = `
             <div class="plugin-icon" style="${iconStyle}"></div>
             <div class="plugin-details">
-            <div class="plugin-name">${plugin.name}</div>
-            <div class="plugin-description">${plugin.description}</div>
+                <div class="plugin-header">
+                    <span class="plugin-name">${plugin.name}</span>
+                    <span class="plugin-version">${plugin.version}</span>
+                </div>
+                <div class="plugin-description">${plugin.description}</div>
             </div>
             <label class="toggle-switch">
-            <input type="checkbox" data-plugin-id="${plugin.id}" ${plugin.enabled ? 'checked' : ''}>
-            <span class="slider"></span>
+                <input type="checkbox" data-plugin-id="${plugin.id}" ${plugin.enabled ? 'checked' : ''}>
+                <span class="slider"></span>
             </label>
             `;
 
