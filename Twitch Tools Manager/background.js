@@ -6,7 +6,8 @@ chrome.runtime.onInstalled.addListener(function() {
     const defaultPlugins = {
         'BTTVPiPRemover': true,
         'TwitchAutoRefresh': true,
-        'BackgroundPlayer': true
+        'BackgroundPlayer': true,
+        'StreamRefresher': true
     };
 
     // Save default settings to chrome.storage.sync
@@ -39,13 +40,16 @@ function handlePluginStateChange(pluginId, enabled) {
             updateBTTVPiPRemover(enabled);
             break;
 
-
         case 'TwitchAutoRefresh':
             updateTwitchAutoRefresh(enabled);
             break;
 
         case 'BackgroundPlayer':
             updateBackgroundPlayer(enabled);
+            break;
+
+        case 'StreamRefresher':
+            updateStreamRefresher(enabled);
             break;
     }
 }
@@ -60,6 +64,9 @@ function updateContentScripts() {
 
         const BackgroundPlayerEnabled = result.BackgroundPlayer !== undefined ? result.BackgroundPlayer : true;
         updateBackgroundPlayer(BackgroundPlayerEnabled);
+
+        const StreamRefresherEnabled = result.StreamRefresher !== undefined ? result.StreamRefresher : true;
+        updateStreamRefresher(StreamRefresherEnabled);
     });
 }
 
@@ -69,7 +76,7 @@ function updateBTTVPiPRemover(enabled) {
             for (let tab of tabs) {
                 chrome.scripting.executeScript({
                     target: {tabId: tab.id},
-                    files: ["plugins/BTTVPiPRemover/content.js"]
+                    files: ["plugins/BTTVPiPRemover/bttvpipremover.js"]
                 }).catch(error => console.error("Error injecting BTTV PiP script:", error));
 
                 chrome.scripting.insertCSS({
@@ -108,7 +115,7 @@ function updateTwitchAutoRefresh(enabled) {
             for (let tab of tabs) {
                 chrome.scripting.executeScript({
                     target: {tabId: tab.id},
-                    files: ["plugins/TwitchAutoRefresh/content.js"]
+                    files: ["plugins/TwitchAutoRefresh/twitchautorefresh.js"]
                 }).catch(error => console.error("Error injecting Twitch Auto Refresher script:", error));
             }
         });
@@ -135,7 +142,7 @@ function updateBackgroundPlayer(enabled) {
             for (let tab of tabs) {
                 chrome.scripting.executeScript({
                     target: {tabId: tab.id},
-                    files: ["plugins/BackgroundPlayer/content.js"]
+                    files: ["plugins/BackgroundPlayer/backgroundplayer.js"]
                 }).catch(error => console.error("Error injecting Background Player script:", error));
             }
         });
@@ -151,6 +158,33 @@ function updateBackgroundPlayer(enabled) {
                         window.BackgroundPlayerDisabled = true;
                     }
                 }).catch(error => console.error("Error disabling Background Player:", error));
+            }
+        });
+    }
+}
+
+function updateStreamRefresher(enabled) {
+    if (enabled) {
+        chrome.tabs.query({url: "*://*.twitch.tv/*"}, function(tabs) {
+            for (let tab of tabs) {
+                chrome.scripting.executeScript({
+                    target: {tabId: tab.id},
+                    files: ["plugins/StreamRefresher/streamrefresher.js"]
+                }).catch(error => console.error("Error injecting Stream Refresher script:", error));
+            }
+        });
+    } else {
+        chrome.tabs.query({url: "*://*.twitch.tv/*"}, function(tabs) {
+            for (let tab of tabs) {
+                chrome.scripting.executeScript({
+                    target: {tabId: tab.id},
+                    function: function() {
+                        for (let i = 1; i < 9999; i++) {
+                            window.clearInterval(i);
+                        }
+                        window.StreamRefresherDisabled = true;
+                    }
+                }).catch(error => console.error("Error disabling Stream Refresher:", error));
             }
         });
     }
