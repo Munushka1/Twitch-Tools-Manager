@@ -21,7 +21,15 @@ const plugins = [
         description: 'Stops Twitch streams from pausing when you switch tabs',
         icon: 'icons/twitchpipss48x48.png',
         enabled: true,
-        version: "1.0.2"
+        version: "1.0.4"
+    },
+    {
+        id: "StreamRefresher",
+        name: "Twitch Stream Start Refresher",
+        description: "Refreshes Twitch page when a Twitch stream starts",
+        icon: "icons/twitchpipss48x48.png",
+        enabled: true,
+        version: "1.0.0"
     }
 ];
 
