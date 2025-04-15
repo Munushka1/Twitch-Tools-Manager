@@ -12,6 +12,10 @@ Installation Instructions:
 
 - Ensure it is enabled
 
+🛠️ V1.5 Changes:
+
+- Further improvements to the BackgroundPlayer script to prevent it from overlapping with teh Twitch Auto Refresh script when an error occurs
+
 
 🛠️ V1.4 Changes:
 
