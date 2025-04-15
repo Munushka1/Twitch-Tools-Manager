@@ -11,6 +11,11 @@
     let isManualPause = false;
     let ignoreNextPause = false;
     let preventAutoResumeTimeout = null;
+
+    let playerErrorDetected = false;
+    let lastErrorTime = 0;
+    let errorCheckingEnabled = true;
+    let tabSwitchInProgress = false;
     
     try {
         Object.defineProperty(Document.prototype, 'visibilityState', {
@@ -177,6 +182,50 @@
     };
     
     fixAudioContext();
+
+    const resetErrorState = () => {
+        console.log("Completely resetting error states");
+        playerErrorDetected = false;
+        lastErrorTime = 0;
+
+        document.querySelector('video').forEach(video => {
+            if (video._hasError) {
+                video._hasError = false;
+                video._playFailCount = 0;
+                video._errorTime = 0;
+            }
+        });
+    };
+
+    const checkForPlayerError = () => {
+        if (!errorCheckingEnabled || tabSwitchInProgress) {
+            return false;
+        }
+
+        const errorElements = document.querySelectorAll('.player-error-message, .tw-alert--error, [data-a-target="player-overlay-error"], .player-overlay-error');
+
+        if (errorElements.length > 0) {
+            console.log("Player error detected via UI elements");
+            playerErrorDetected = true;
+            lastErrorTime = Date.now();
+            return true;
+        }
+
+        const networkErrorIndicators = document.querySelectorAll('[data-a-target="player-error-message"], .network-error, .loading-error');
+        if (networkErrorIndicators.length > 0) {
+            console.log("Network error detected");
+            playerErrorDetected = true;
+            lastErrorTime = Date.now();
+            return true;
+        }
+
+        if (playerErrorDetected && (Date.now() - lastErrorTime > 30000)) {
+            console.log("Error state cleared after timeout");
+            resetErrorState();
+        }
+
+        return playerErrorDetected;
+    };
     
     const handleVideo = (video) => {
         if (processedVideos.has(video)) return;
@@ -190,6 +239,26 @@
         let shouldBePlaying = !video.paused;
         let wasPlayingBeforeVisibilityChange = shouldBePlaying;
         let originalMutedState = video.muted;
+
+        video._hasError = false;
+        video._errorTime = 0;
+        video._playFailCount = 0;
+        video._lastStallTime = 0;
+        video._lastPlayAttempt = 0;
+
+        video.addEventListener('error', (e) => {
+            console.log(`Video error detected: ${e.type}`, e);
+            video._hasError = true;
+            video._errorTime = Date.now();
+            playerErrorDetected = true;
+            lastErrorTime = Date.now();
+        });
+
+        ['stalled', 'waiting', 'emptied'].forEach(eventType => {
+            video.addEventListener(eventType, () => {
+                video._lastStallTime = Date.now();
+            });
+        });
 
         video.addEventListener('click', () => {
             if (!video.paused) {
@@ -215,6 +284,12 @@
         }, true);
         
         video.play = function() {
+            const hasRealError = !tabSwitchInProgress && errorCheckingEnabled && (checkForPlayerError() || video._hasError);
+            if (hasRealError) {
+                console.log("Not attempting to play due to detected errors");
+                return Promise.reject(new Error("Play prevented due to player error"));
+            }
+
             shouldBePlaying = true;
 
             if (preventAutoResumeTimeout) {
@@ -235,6 +310,13 @@
                 ignoreNextPause = false;
                 console.log("Ignoring pause as requested");
                 return Promise.resolve();
+            }
+
+            const hasRealError = !tabSwitchInProgress && errorCheckingEnabled && (checkForPlayerError() || video._hasError);
+            if (hasRealError) {
+                console.log("Allowing pause due to player error");
+                shouldBePlaying = false;
+                return originalPause.apply(this, arguments);
             }
 
             const isProbablyAutomatic = !isManualPause && (
@@ -265,9 +347,21 @@
         });
         
         video.addEventListener('pause', () => {
+            const hasRealError = !tabSwitchInProgress && errorCheckingEnabled && (checkForPlayerError() || video._hasError);
+            if (hasRealError) {
+                console.log("Not attempting to resume due to player error");
+                shouldBePlaying = false;
+                return;
+            }
+
             if (isManualPause || preventAutoResumeTimeout) {
                 console.log("Respecting user pause");
                 shouldBePlaying = false;
+                return;
+            }
+
+            if (video._lastStallTime && (Date.now() - video._lastStallTime < 5000)) {
+                console.log("Video recently stalled, not attempting to resume yet");
                 return;
             }
 
@@ -281,6 +375,17 @@
                 if (playPromise !== undefined) {
                     playPromise.catch(error => {
                         console.log("Play failed, trying with muting:", error);
+
+                        if (!video._playFailCount) video._playFailCount = 0;
+                        video._playFailCount++;
+
+                        if (video._playFailCount >= 3) {
+                            console.log("Too many play failures, giving up");
+                            shouldBePlaying = false;
+                            video._hasError = true;
+                            video._errorTime = Date.now();
+                            return;
+                        }
 
                         video.muted = true;
                         originalPlay.call(video).then(() => {
@@ -298,6 +403,9 @@
                         }).catch(e => {
                             console.error("Final play attempt failed:", e);
                             shouldBePlaying = false;
+
+                            video._hasError = true;
+                            video._errorTime = Date.now();
                         });
                     });
                 }
@@ -305,17 +413,30 @@
                 shouldBePlaying = false;
             }
         });
-        
-        document.addEventListener('visibilitychange', () => {
+
+        const visibilityChangeHandler = () => {
             if (window.BackgroundPlayerDisabled) return;
-            
+
+            tabSwitchInProgress = true;
+
             if (document.visibilityState === 'hidden') {
                 wasPlayingBeforeVisibilityChange = !video.paused;
                 originalMutedState = video.muted;
+                console.log("Tab hidden, current play state:", wasPlayingBeforeVisibilityChange);
             } else if (document.visibilityState === 'visible') {
+                console.log("Tab visible again, was playing:", wasPlayingBeforeVisibilityChange);
+
+                if (video._hasError) {
+                    console.log("Clearing video error state on tab visible");
+                    video._hasError = false;
+                    video._playFailCount = 0;
+                }
+
                 if (wasPlayingBeforeVisibilityChange && video.paused && !preventAutoResumeTimeout) {
                     console.log("Restoring playback after visibility change");
+
                     originalPlay.call(video).catch(() => {
+                        console.log("Play failed after visibility change, trying with mute");
                         video.muted = true;
                         originalPlay.call(video).then(() => {
                             if (!originalMutedState) {
@@ -327,21 +448,48 @@
                                     }
                                 }, 1000);
                             }
+                        }).catch(e => {
+                            console.error("Even muted play failed afte visibility change:", e);
                         });
                     });
                 }
+
+                setTimeout(() => {
+                    tabSwitchInProgress = false;
+                    shouldBePlaying = !video.paused;
+
+                    if (errorCheckingEnabled) {
+                        checkForPlayerError();
+                    }
+                }, 2000);
             }
-        });
+        };
+
+        document.addEventListener('visibilitychange', visibilityChangeHandler);
         
         if (video.paused && video.muted) {
             console.log("Detected initial muted video - attempting to start playback");
             
             setTimeout(() => {
+                const hasRealError = errorCheckingEnabled && checkForPlayerError();
+                if (hasRealError) {
+                    console.log("Not attempting initial play due to player error");
+                    return;
+                }
+
                 originalPlay.call(video).catch(e => {
                     console.log("Initial play failed:", e);
                 });
             }, 500);
         }
+
+        setInterval(() => {
+            if (video._hasError && (Date.now() - video._errorTime > 30000)) {
+                console.log("Clearing video error state after timeout");
+                video._hasError = false;
+                video._playFailCount = 0;
+            }
+        }, 10000);
     };
     
     const startVideoObserver = () => {
@@ -376,10 +524,33 @@
     };
     
     const videoObserver = startVideoObserver();
+
+    const startErrorObserver = () => {
+        const observer = new MutationObserver(() => {
+            if (errorCheckingEnabled && !tabSwitchInProgress){
+                checkForPlayerError();
+            }
+        });
+
+        observer.observe(document.documentElement, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['class', 'data-a-target']
+        });
+
+        return observer;
+    };
+
+    const errorObserver = startErrorObserver();
     
     const videoCheckInterval = setInterval(() => {
         if (window.BackgroundPlayerDisabled) {
             clearInterval(videoCheckInterval);
+            return;
+        }
+
+        if (!tabSwitchInProgress && errorCheckingEnabled && checkForPlayerError()) {
             return;
         }
         
@@ -387,9 +558,23 @@
             if (!processedVideos.has(video)) {
                 handleVideo(video);
             }
+
+            if (video._hasError) {
+                if (Date.now() - video._errorTime > 30000) {
+                    console.log("Error timeout expired, clearing error state");
+                    video._hasError = false;
+                    video._playFailCount = 0;
+                    if (shouldBePlaying && video.paused) {
+                        video.play().catch(e => console.log("Failed to resume after error timeout:", e));
+                    }
+                } else {
+                    return;
+                }
+            }
             
             if (video && video.paused && !video.ended && video.currentTime > 0 && 
-                !isManualPause && !preventAutoResumeTimeout && video.getAttribute('data-should-play') !== 'false') {
+                !isManualPause && !preventAutoResumeTimeout && !video._hasError &&
+                !tabSwitchInProgress && video.getAttribute('data-should-play') !== 'false') {
                 
                 if (!video._lastPlayAttempt || (Date.now() - video._lastPlayAttempt > 5000)) {
                     video._lastPlayAttempt = Date.now();
@@ -399,6 +584,16 @@
                 if (playPromise !== undefined) {
                     playPromise.catch(error => {
                         console.log("Periodic check play failed:", error);
+
+                        if (!video._playFailCount) video._playFailCount = 0;
+                        video._playFailCount++;
+
+                        if (video._playFailCount >= 3) {
+                            console.log("Too many play failures, giving up");
+                            video._hasError = true;
+                            video._errorTime = Date.now();
+                            return;
+                        }
                         
                         const wasMuted = video.muted;
                         if (!wasMuted) {
@@ -431,9 +626,69 @@
         }
     });
 
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            console.log("Tab became visible, resetting all error states");
+            resetErrorState();
+            tabSwitchInProgress = true;
+
+            setTimeout(() => {
+                tabSwitchInProgress = false;
+            }, 2000);
+        } else {
+            tabSwitchInProgress = true;
+        }
+    });
+
     window.toggleBackgroundPlayer = function(enable) {
         window.BackgroundPlayerDisabled = !enable;
         console.log(`Background Player ${enable ? 'enabled' : 'disabled'}`);
+    };
+
+    window.toggleErrorChecking = function(enable) {
+        errorCheckingEnabled = enable;
+        console.log(`Error checking ${enable ? 'enabled' : 'disabled'}`);
+
+        if (!enable) {
+            resetErrorState();
+        }
+    };
+
+    window.resetBackgroundPlayer = function() {
+        resetErrorState();
+        console.log("Background player state completely reset");
+        return "Background player reset complete";
+    };
+
+    const originalFetch = window.fetch;
+    window.fetch = function() {
+        const promise = originalFetch.apply(this, arguments);
+
+        promise.catch(error => {
+            if (!errorCheckingEnabled || tabSwitchInProgress) return;
+
+            console.log("Network fetch error detected:", error);
+            const url = arguments[0].toString();
+            if (url.includes('api') || url.includes('video') || url.includes('stream') || url.includes('media') || url.includes('playlist') || url.includes('manifest')) {
+                playerErrorDetected = true;
+                lastErrorTime = Date.now();
+            }
+        });
+
+        return promise;
+    };
+
+    const originalXHROpen = XMLHttpRequest.prototype.open;
+    XMLHttpRequest.prototype.open = function() {
+        this.addEventListener('error', () => {
+            if (!errorCheckingEnabled || tabSwitchInProgress) return;
+
+            console.log("XHR error detected");
+            playerErrorDetected = true;
+            lastErrorTime = Date.now();
+        });
+
+        return originalXHROpen.apply(this, arguments);
     };
     
     console.log("Twitch Background Player fully initialized");
